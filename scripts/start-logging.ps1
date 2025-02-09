@@ -1,3 +1,6 @@
+# This script logs Beat Saber using adb logcat.
+# It supports various logging options including self, all, custom patterns, and file output.
+
 Param(
     [Parameter(Mandatory=$false)]
     [Switch] $self,
@@ -15,9 +18,13 @@ Param(
     [Switch] $help,
 
     [Parameter(Mandatory=$false)]
-    [Switch] $excludeHeader
+    [Switch] $excludeHeader,
+
+    [Parameter(Mandatory=$false)]
+    [String] $packageName="com.beatgames.beatsaber"
 )
 
+# Display help information if requested
 if ($help -eq $true) {
     if ($excludeHeader -eq $false) {
         Write-Output "`"Start-Logging`" - Logs Beat Saber using `"adb logcat`""
@@ -27,23 +34,26 @@ if ($help -eq $true) {
     Write-Output "-Self `t`t Only Logs your mod and Crashes"
     Write-Output "-All `t`t Logs everything, including logs made by the Quest itself"
     Write-Output "-Custom `t Specify a specific logging pattern, e.g `"custom-types|questui`""
-    Write-Output "`t`t NOTE: The paterent `"AndriodRuntime|CRASH`" is always appended to a custom pattern"
+    Write-Output "`t`t NOTE: The pattern `"AndroidRuntime|CRASH|scotland2|Unity`" is always appended to a custom pattern"
     Write-Output "-File `t`t Saves the output of the log to the file name given"
 
     exit
 }
 
-$bspid = adb shell pidof com.beatgames.beatsaber
+# Get the process ID of Beat Saber
+$bspid = adb shell pidof "$packageName"
 $command = "adb logcat "
 
+# Retry getting the process ID if not found
 if ($all -eq $false) {
     $loops = 0
     while ([string]::IsNullOrEmpty($bspid) -and $loops -lt 3) {
         Start-Sleep -Milliseconds 100
-        $bspid = adb shell pidof com.beatgames.beatsaber
+        $bspid = adb shell pidof "$packageName"
         $loops += 1
     }
 
+    # Exit if the process ID could not be found
     if ([string]::IsNullOrEmpty($bspid)) {
         Write-Output "Could not connect to adb, exiting..."
         exit 1
@@ -52,9 +62,11 @@ if ($all -eq $false) {
     $command += "--pid $bspid"
 }
 
+# Build the logging pattern
 if ($all -eq $false) {
     $pattern = "("
     if ($self -eq $true) {
+        & $PSScriptRoot/validate-modjson.ps1
         $modID = (Get-Content "./mod.json" -Raw | ConvertFrom-Json).id
         $pattern += "$modID|"
     }
@@ -62,15 +74,17 @@ if ($all -eq $false) {
         $pattern += "$custom|"
     }
     if ($pattern -eq "(") {
-        $pattern = "(QuestHook|modloader|"
+        $pattern = "( INFO| DEBUG| WARN| ERROR| CRITICAL|"
     }
-    $pattern += "AndroidRuntime|CRASH)"
+    $pattern += "AndroidRuntime|CRASH|scotland2|Unity  )"
     $command += " | Select-String -pattern `"$pattern`""
 }
 
+# Add file output if specified
 if (![string]::IsNullOrEmpty($file)) {
     $command += " | Out-File -FilePath $PSScriptRoot\$file"
 }
 
 Write-Output "Logging using Command `"$command`""
+adb logcat -c
 Invoke-Expression $command
