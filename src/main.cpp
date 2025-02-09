@@ -147,7 +147,7 @@ void DidActivate(HMUI::ViewController* self, bool firstActivation, bool addedToH
     BSML::Lite::AddHoverHint(AddConfigValueToggle(vertical, getConfig().IsLinear)->get_gameObject(),"Toggles whether you want to use acceleration or not.");
 }
 
-extern "C" void load() {
+MOD_EXPORT_FUNC void load() {
   il2cpp_functions::Init();
   BSML::Init();
   BSML::Register::RegisterSettingsMenu("Faster Scroll", DidActivate, false);
