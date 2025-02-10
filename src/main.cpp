@@ -1,39 +1,27 @@
 #include "Config.hpp"
 #include "main.hpp"
 
-#include "UnityEngine/GameObject.hpp"
-#include "UnityEngine/Transform.hpp"
-#include "UnityEngine/SceneManagement/SceneManager.hpp"
-#include "UnityEngine/UI/VerticalLayoutGroup.hpp"
-#include "UnityEngine/UI/CanvasScaler.hpp"
-#include "UnityEngine/UI/LayoutElement.hpp"
-#include "UnityEngine/CanvasRenderer.hpp"
-#include "UnityEngine/Object.hpp"
-#include "UnityEngine/Color.hpp"
-#include "UnityEngine/MonoBehaviour.hpp"
-#include "UnityEngine/Canvas.hpp"
-#include "UnityEngine/RenderMode.hpp"
-#include "UnityEngine/Time.hpp"
-#include "UnityEngine/Mathf.hpp"
-
-#include "HMUI/CurvedTextMeshPro.hpp"
-#include "HMUI/ViewController.hpp"
+#include "GlobalNamespace/LevelCollectionTableView.hpp"
 #include "HMUI/CurvedCanvasSettings.hpp"
-#include "HMUI/Touchable.hpp"
+#include "HMUI/CurvedTextMeshPro.hpp"
 #include "HMUI/ScrollView.hpp"
 #include "HMUI/TableView.hpp"
+#include "HMUI/Touchable.hpp"
+#include "HMUI/ViewController.hpp"
+#include "UnityEngine/Canvas.hpp"
+#include "UnityEngine/CanvasRenderer.hpp"
+#include "UnityEngine/Mathf.hpp"
+#include "UnityEngine/Time.hpp"
+#include "UnityEngine/UI/CanvasScaler.hpp"
 
-#include "TMPro/TextMeshProUGUI.hpp"
-
-#include "GlobalNamespace/LevelCollectionTableView.hpp"
-
-#include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
-#include "custom-types/shared/types.hpp"
+#include "beatsaber-hook/shared/utils/hooking.hpp"
+#include "beatsaber-hook/shared/utils/il2cpp-functions.hpp"
+#include "bsml/shared/BSML-Lite/Creation/Layout.hpp"
+#include "bsml/shared/BSML.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "custom-types/shared/register.hpp"
-#include "bsml/shared/BSML.hpp"
-#include "bsml/shared/BSML-Lite/Creation/Layout.hpp"
-#include <iostream>
+#include "custom-types/shared/types.hpp"
+#include "scotland2/shared/modloader.h"
 #include <string>
 
 using namespace std;
@@ -159,7 +147,7 @@ void DidActivate(HMUI::ViewController* self, bool firstActivation, bool addedToH
     BSML::Lite::AddHoverHint(AddConfigValueToggle(vertical, getConfig().IsLinear)->get_gameObject(),"Toggles whether you want to use acceleration or not.");
 }
 
-extern "C" void load() {
+MOD_EXPORT_FUNC void load() {
   il2cpp_functions::Init();
   BSML::Init();
   BSML::Register::RegisterSettingsMenu("Faster Scroll", DidActivate, false);

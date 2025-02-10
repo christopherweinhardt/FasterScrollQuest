@@ -1,14 +1,21 @@
+# This script pulls the most recent tombstone file from the Quest device.
+# Optionally, it can analyze the tombstone using ndk-stack.
+
 Param(
     [Parameter(Mandatory=$false)]
     [String] $fileName = "RecentCrash.log",
-    
+
     [Parameter(Mandatory=$false)]
     [Switch] $analyze,
-    
+
     [Parameter(Mandatory=$false)]
-    [Switch] $help
+    [Switch] $help,
+
+    [Parameter(Mandatory=$false)]
+    [String] $packageName="com.beatgames.beatsaber"
 )
 
+# Display help information if requested
 if ($help -eq $true) {
     Write-Output "`"Pull-Tombstone`" - Finds and pulls the most recent tombstone from your quest, optionally analyzing it with ndk-stack"
     Write-Output "`n-- Arguments --`n"
@@ -23,8 +30,9 @@ $global:currentDate = get-date
 $global:recentDate = $Null
 $global:recentTombstone = $Null
 
+# Loop through possible tombstone files to find the most recent one
 for ($i = 0; $i -lt 3; $i++) {
-    $stats = & adb shell stat /sdcard/Android/data/com.beatgames.beatsaber/files/tombstone_0$i
+    $stats = & adb shell stat "/sdcard/Android/data/$packageName/files/tombstone_0$i"
     $date = (Select-String -Input $stats -Pattern "(?<=Modify: )\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?=.\d{9})").Matches.Value
     if([string]::IsNullOrEmpty($date)) {
         Write-Output "Failed to pull tombstone, exiting..."
@@ -45,8 +53,10 @@ for ($i = 0; $i -lt 3; $i++) {
 
 Write-Output "Latest tombstone was tombstone_0$recentTombstone"
 
-& adb pull /sdcard/Android/data/com.beatgames.beatsaber/files/tombstone_0$recentTombstone $fileName
+# Pull the most recent tombstone file
+& adb pull "/sdcard/Android/data/$packageName/files/tombstone_0$recentTombstone" "$fileName"
 
+# Analyze the tombstone file if requested
 if ($analyze) {
-    & $PSScriptRoot/ndk-stack.ps1 -logName:$fileName
+    & "$PSScriptRoot/ndk-stack.ps1" "-logName:$fileName"
 }
