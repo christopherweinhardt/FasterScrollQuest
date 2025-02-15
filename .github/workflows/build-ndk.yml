@@ -74,6 +74,8 @@ jobs:
         with:
           submodules: true
           lfs: true
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: seanmiddleditch/gha-setup-ninja@v3
 
