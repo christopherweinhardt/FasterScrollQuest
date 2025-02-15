@@ -7,7 +7,7 @@
     "info": {
       "name": "Faster Scroll",
       "id": "FasterScroll",
-      "version": "1.10.0",
+      "version": "1.11.0",
       "url": null,
       "additionalData": {
         "overrideSoName": "libFasterScroll.so",
@@ -41,7 +41,9 @@
         ],
         "qmod": [
           "qpm s build",
-          "qpm qmod zip"
+          "qpm s update-version",
+          "qpm qmod zip --skip_build",
+          "qpm s update-version -- -restore"
         ],
         "rebuild": [
           "qpm s deepclean",
@@ -59,30 +61,29 @@
         ],
         "tomb": [
           "pwsh ./scripts/pull-tombstone.ps1"
+        ],
+        "update-version": [
+          "pwsh ./scripts/update-version.ps1 $0:?"
         ]
       },
-      "ndk": "^27.0.0",
+      "ndk": "^27.2.12479018",
       "qmodIncludeDirs": [
         "./build",
         "./extern/libs"
       ],
-      "qmodIncludeFiles": [
-        "./Cover.jpg"
-      ],
+      "qmodIncludeFiles": [],
       "qmodOutput": "./Faster Scroll.qmod"
     },
     "dependencies": [
       {
-        "id": "beatsaber-hook",
-        "versionRange": "^6.4.0",
+        "id": "autohooks",
+        "versionRange": "^0.1.0",
         "additionalData": {}
       },
       {
-        "id": "paper2_scotland2",
-        "versionRange": "^4.5.0",
-        "additionalData": {
-          "private": true
-        }
+        "id": "beatsaber-hook",
+        "versionRange": "^6.4.0",
+        "additionalData": {}
       },
       {
         "id": "bs-cordl",
@@ -90,16 +91,13 @@
         "additionalData": {}
       },
       {
-        "id": "scotland2",
-        "versionRange": "^0.1.6",
-        "additionalData": {
-          "includeQmod": false,
-          "private": true
-        }
-      },
-      {
         "id": "bsml",
         "versionRange": "^0.4.49",
+        "additionalData": {}
+      },
+      {
+        "id": "config-utils",
+        "versionRange": "^2.0.2",
         "additionalData": {}
       },
       {
@@ -108,9 +106,16 @@
         "additionalData": {}
       },
       {
-        "id": "config-utils",
-        "versionRange": "^2.0.2",
+        "id": "paper2_scotland2",
+        "versionRange": "^4.5.0",
         "additionalData": {}
+      },
+      {
+        "id": "scotland2",
+        "versionRange": "^0.1.6",
+        "additionalData": {
+          "includeQmod": false
+        }
       }
     ]
   },
@@ -151,19 +156,16 @@
     },
     {
       "dependency": {
-        "id": "libil2cpp",
-        "versionRange": "=0.4.0",
+        "id": "autohooks",
+        "versionRange": "=0.1.1688867040133120",
         "additionalData": {
           "headersOnly": true,
-          "compileOptions": {
-            "systemIncludes": [
-              "il2cpp/external/baselib/Include",
-              "il2cpp/external/baselib/Platforms/Android/Include"
-            ]
-          }
+          "overrideSoName": "libautohooks.so",
+          "branchName": "version/v0_1_1688867040133120",
+          "cmake": true
         }
       },
-      "version": "0.4.0"
+      "version": "0.1.1688867040133120"
     },
     {
       "dependency": {
@@ -198,6 +200,22 @@
         }
       },
       "version": "0.18.2"
+    },
+    {
+      "dependency": {
+        "id": "libil2cpp",
+        "versionRange": "=0.4.0",
+        "additionalData": {
+          "headersOnly": true,
+          "compileOptions": {
+            "systemIncludes": [
+              "il2cpp/external/baselib/Include",
+              "il2cpp/external/baselib/Platforms/Android/Include"
+            ]
+          }
+        }
+      },
+      "version": "0.4.0"
     },
     {
       "dependency": {

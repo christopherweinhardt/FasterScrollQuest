@@ -10,11 +10,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_compile_options(-frtti -fexceptions -fvisibility=hidden -fPIE -fPIC -Wno-invalid-offsetof)
+add_compile_options(-frtti -fexceptions -fvisibility=hidden -fPIE -fPIC -Wno-invalid-offsetof -Werror=nonportable-include-path)
 
 # Include. Include order matters!
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/qpm.cmake)
+
+set(GIT_HEADER_FILE ${CMAKE_CURRENT_SOURCE_DIR}/include/git-info.h)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/git.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/write-version.cmake)
 
 if(${CMAKE_BUILD_TYPE} STREQUAL "RELEASE" OR ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo" OR ${CMAKE_BUILD_TYPE} STREQUAL "MinSizeRel")
         # Better optimizations
@@ -73,3 +77,4 @@ RECURSE_FILES(src_inline_hook_beatsaber_hook_local_extra_cpp ${EXTERN_DIR}/inclu
 
 target_sources(${COMPILE_ID} PRIVATE ${src_inline_hook_beatsaber_hook_local_extra_c})
 target_sources(${COMPILE_ID} PRIVATE ${src_inline_hook_beatsaber_hook_local_extra_cpp})
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/user-includes.cmake")

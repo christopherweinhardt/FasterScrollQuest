@@ -1,49 +1,91 @@
-#include "Config.hpp"
 #include "main.hpp"
 
+#include "autohooks/shared/hooks.hpp"
+#include "beatsaber-hook/shared/utils/il2cpp-functions.hpp"
+#include "config.hpp"
+#include "custom-types/shared/macros.hpp"
+#include "custom-types/shared/register.hpp"
+#include "custom-types/shared/types.hpp"
+#include "logger.hpp"
+#include "modInfo.hpp"
+#include "scotland2/shared/modloader.h"
+
+// BSML
+#include "bsml/shared/BSML.hpp"
+using namespace BSML;
+
+// GlobalNamespace
 #include "GlobalNamespace/LevelCollectionTableView.hpp"
+using namespace GlobalNamespace;
+
+// HMUI
 #include "HMUI/CurvedCanvasSettings.hpp"
 #include "HMUI/CurvedTextMeshPro.hpp"
 #include "HMUI/ScrollView.hpp"
 #include "HMUI/TableView.hpp"
-#include "HMUI/Touchable.hpp"
-#include "HMUI/ViewController.hpp"
+using namespace HMUI;
+
+// UnityEngine
 #include "UnityEngine/Canvas.hpp"
 #include "UnityEngine/CanvasRenderer.hpp"
 #include "UnityEngine/Mathf.hpp"
 #include "UnityEngine/Time.hpp"
 #include "UnityEngine/UI/CanvasScaler.hpp"
-
-#include "beatsaber-hook/shared/utils/hooking.hpp"
-#include "beatsaber-hook/shared/utils/il2cpp-functions.hpp"
-#include "bsml/shared/BSML-Lite/Creation/Layout.hpp"
-#include "bsml/shared/BSML.hpp"
-#include "custom-types/shared/macros.hpp"
-#include "custom-types/shared/register.hpp"
-#include "custom-types/shared/types.hpp"
-#include "scotland2/shared/modloader.h"
-#include <string>
-
-using namespace std;
-using namespace HMUI;
-using namespace GlobalNamespace;
-using namespace BSML;
 using namespace UnityEngine;
 
-// Called at the early stages of game loading
+// Standard Library
+#include <string>
+using namespace std;
+
+/// @brief Called at the early stages of game loading
+/// @param info The mod info.  Update this with your mod's info.
+/// @return
 MOD_EXPORT_FUNC void setup(CModInfo& info) {
-    info.id = MOD_ID;
-    info.version = VERSION;
-    modInfo.assign(info);
+    // Convert the mod info to a C struct and set that as the modloader info.
+    info = modInfo.to_c();
 
     getConfig().Init(modInfo);
 
     Logger.info("Completed setup!");
 }
 
+/// @brief Called early on in the game loading
+/// @return
+MOD_EXPORT_FUNC void load() {
+    // Initialize il2cpp functions
+    il2cpp_functions::Init();
+    BSML::Init();
+    BSML::Register::RegisterSettingsMenu("Faster Scroll", ConfigViewDidLoad, false);
+    custom_types::Register::AutoRegister();
+
+    // Get the number of early hooks that will be installed.
+    auto earlyHookCount = EARLY_HOOK_COUNT;
+
+    // install early hooks
+    if (earlyHookCount > 0) {
+        Logger.info("Installing {} early hook{}", earlyHookCount, earlyHookCount == 0 || earlyHookCount > 1 ? "s" : "");
+        INSTALL_EARLY_HOOKS();
+        Logger.info("Finished installing early hook{}", earlyHookCount == 0 || earlyHookCount > 1 ? "s" : "");
+    }
+}
+
+/// @brief Called later on in the game loading - a good time to install function hooks
+/// @return
+MOD_EXPORT_FUNC void late_load() {
+    // Get the number of late hooks that will be installed.
+    auto lateHookCount = LATE_HOOK_COUNT;
+
+    // Install late hooks
+    if (lateHookCount > 0) {
+        Logger.info("Installing {} late hook{}", lateHookCount, lateHookCount > 1 ? "s" : "");
+        INSTALL_LATE_HOOKS();
+        Logger.info("Finished installing late hook{}", lateHookCount == 0 || lateHookCount > 1 ? "s" : "");
+    }
+}
+
 float m_fStockScrollSpeed;
 float m_fInertia;
-float m_fCustomSpeed; // stock value : 60.0f
+float m_fCustomSpeed;  // stock value : 60.0f
 float m_fScrollTimer;
 
 #define isLinear (getConfig().IsLinear.GetValue())
@@ -51,7 +93,7 @@ float m_fScrollTimer;
 #define accel (getConfig().Accel.GetValue())
 #define maxSpeed (getConfig().MaxSpeed.GetValue())
 
-float m_fVanillaStockRumbleStrength; // stock value : 1.0f (will be set ONCE at launch)
+float m_fVanillaStockRumbleStrength;  // stock value : 1.0f (will be set ONCE at launch)
 float m_fRumbleStrength;
 std::string str = "LevelsTableView";
 
@@ -59,11 +101,10 @@ void SetStockScrollSpeed(ScrollView* sv) {
     m_fStockScrollSpeed = sv->____joystickScrollSpeed;
 }
 
-void ScrollViewPatcherDynamic(ScrollView* sv)
-{
+void ScrollViewPatcherDynamic(ScrollView* sv) {
     m_fScrollTimer += Time::get_deltaTime();
 
-    if(!isLinear) {
+    if (!isLinear) {
         m_fInertia = accel * m_fScrollTimer;
     } else {
         return;
@@ -73,8 +114,7 @@ void ScrollViewPatcherDynamic(ScrollView* sv)
     sv->____joystickScrollSpeed = m_fCustomSpeed;
 }
 
-void ScrollViewPatcherConstant(LevelCollectionTableView* lctv)
-{
+void ScrollViewPatcherConstant(LevelCollectionTableView* lctv) {
     TableView* tv = lctv->____tableView;
     ScrollView* sv = tv->GetComponent<ScrollView*>();
 
@@ -83,8 +123,7 @@ void ScrollViewPatcherConstant(LevelCollectionTableView* lctv)
     }
 }
 
-void ScrollViewPatcherStock(LevelCollectionTableView* lctv)
-{
+void ScrollViewPatcherStock(LevelCollectionTableView* lctv) {
     TableView* tv = lctv->____tableView;
     ScrollView* sv = tv->GetComponent<ScrollView*>();
 
@@ -98,24 +137,27 @@ void ResetInertia() {
     m_fScrollTimer = 0.0f;
 }
 
-MAKE_HOOK_MATCH(ScrollView_Awake, &HMUI::ScrollView::Awake, void, HMUI::ScrollView* self) {
+MAKE_EARLY_HOOK_MATCH(ScrollView_Awake, &ScrollView::Awake, void, ScrollView* self) {
     SetStockScrollSpeed(self);
     ScrollView_Awake(self);
 }
 
-MAKE_HOOK_MATCH(LevelCollectionTableView_OnEnable, &GlobalNamespace::LevelCollectionTableView::OnEnable, void, GlobalNamespace::LevelCollectionTableView* self) {
-    if(!isntStock) {
+MAKE_EARLY_HOOK_MATCH(LevelCollectionTableView_OnEnable, &LevelCollectionTableView::OnEnable, void, LevelCollectionTableView* self) {
+    if (!isntStock) {
         ScrollViewPatcherStock(self);
         return;
     }
-    if(isLinear && isntStock)
+    if (isLinear && isntStock) {
         ScrollViewPatcherConstant(self);
+    }
     LevelCollectionTableView_OnEnable(self);
 }
 
-MAKE_HOOK_MATCH(ScrollView_HandleJoystickWasNotCenteredThisFrame, &HMUI::ScrollView::HandleJoystickWasNotCenteredThisFrame, void, HMUI::ScrollView* self, Vector2 deltaPos) {
+MAKE_EARLY_HOOK_MATCH(
+    ScrollView_HandleJoystickWasNotCenteredThisFrame, &ScrollView::HandleJoystickWasNotCenteredThisFrame, void, ScrollView* self, Vector2 deltaPos
+) {
     if (!isLinear) {
-        if(StringW(self->get_transform()->get_parent()->get_gameObject()->get_name()) == str && isntStock) {
+        if (StringW(self->get_transform()->get_parent()->get_gameObject()->get_name()) == str && isntStock) {
             ScrollViewPatcherDynamic(self);
         }
     }
@@ -123,37 +165,9 @@ MAKE_HOOK_MATCH(ScrollView_HandleJoystickWasNotCenteredThisFrame, &HMUI::ScrollV
     ScrollView_HandleJoystickWasNotCenteredThisFrame(self, deltaPos);
 }
 
-MAKE_HOOK_MATCH(ScrollView_HandleJoystickWasCenteredThisFrame, &HMUI::ScrollView::HandleJoystickWasCenteredThisFrame, void, HMUI::ScrollView* self) {
-    if (!isLinear && StringW(self->get_transform()->get_parent()->get_gameObject()->get_name()) == str)
+MAKE_EARLY_HOOK_MATCH(ScrollView_HandleJoystickWasCenteredThisFrame, &ScrollView::HandleJoystickWasCenteredThisFrame, void, ScrollView* self) {
+    if (!isLinear && StringW(self->get_transform()->get_parent()->get_gameObject()->get_name()) == str) {
         ResetInertia();
+    }
     ScrollView_HandleJoystickWasCenteredThisFrame(self);
-}
-
-void DidActivate(HMUI::ViewController* self, bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling){
-    Logger.info("DidActivate: {}, {}, {}", firstActivation, addedToHierarchy, screenSystemEnabling);
-
-    if (!firstActivation)
-        return;
-
-    self->get_gameObject()->AddComponent<HMUI::Touchable*>();
-    auto vertical = BSML::Lite::CreateVerticalLayoutGroup(self);
-    vertical->set_childControlHeight(false);
-    vertical->set_childForceExpandHeight(false);
-    vertical->set_spacing(1);
-
-    BSML::Lite::AddHoverHint(AddConfigValueToggle(vertical, getConfig().IsStock)->get_gameObject(),"Toggles whether the mod is active or not.");
-    BSML::Lite::AddHoverHint(AddConfigValueIncrementFloat(vertical, getConfig().MaxSpeed, 0, 10, 30, 1000)->get_gameObject(),"Changes the speed of scrolling with the joystick. Default: 600");
-    BSML::Lite::AddHoverHint(AddConfigValueIncrementFloat(vertical, getConfig().Accel, 1, 0.1, 0.5, 5)->get_gameObject(),"Changes the acceleration speed of scrolling with the joystick. Default: 1.5");
-    BSML::Lite::AddHoverHint(AddConfigValueToggle(vertical, getConfig().IsLinear)->get_gameObject(),"Toggles whether you want to use acceleration or not.");
-}
-
-MOD_EXPORT_FUNC void load() {
-  il2cpp_functions::Init();
-  BSML::Init();
-  BSML::Register::RegisterSettingsMenu("Faster Scroll", DidActivate, false);
-  INSTALL_HOOK(Logger, LevelCollectionTableView_OnEnable);
-  INSTALL_HOOK(Logger, ScrollView_Awake);
-  INSTALL_HOOK(Logger, ScrollView_HandleJoystickWasNotCenteredThisFrame);
-  INSTALL_HOOK(Logger, ScrollView_HandleJoystickWasCenteredThisFrame);
-  custom_types::Register::AutoRegister();
 }

@@ -3,7 +3,6 @@
   "_QPVersion": "0.1.1",
   "name": "${mod_name}",
   "id": "${mod_id}",
-  "modloader": "Scotland2",
   "coverImage": "Cover.jpg",
   "author": "Christoffyw",
   "version": "${version}",
@@ -15,6 +14,5 @@
     "${binary}"
   ],
   "libraryFiles": [],
-  "fileCopies": [],
-  "copyExtensions": []
+  "fileCopies": []
 }

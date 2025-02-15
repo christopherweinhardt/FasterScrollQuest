@@ -2,13 +2,13 @@
 # It supports clean builds and skipping the build process.
 
 Param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $clean,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $skipBuild,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $help
 )
 
@@ -29,9 +29,11 @@ $defaultQpmFilePath = "qpm.json"
 
 if (Test-Path $sharedQpmFilePath) {
     $qpmJson = (Get-Content $sharedQpmFilePath | ConvertFrom-Json).config
-} elseif (Test-Path $defaultQpmFilePath) {
+}
+elseif (Test-Path $defaultQpmFilePath) {
     $qpmJson = Get-Content $defaultQpmFilePath | ConvertFrom-Json
-} else {
+}
+else {
     Write-Error "Neither qpm.shared.json nor qpm.json exists."
     exit 1
 }
@@ -55,6 +57,31 @@ if ($clean.IsPresent) {
 # Exit if skipping the build
 if ($skipBuild.IsPresent) {
     exit 0
+}
+
+# Check if ./extern/includes/bs-cordl/version.txt exists
+if (Test-Path "$PSScriptRoot/../extern/includes/bs-cordl/include/version.txt") {
+    # Update packageVersion in mod.template.json using bs-cordl version.txt
+    $modTemplateRaw = Get-Content "$PSScriptRoot/../mod.template.json" -Raw
+    $modTemplateOriginal = $modTemplateRaw | ConvertFrom-Json
+    $modTemplate = $modTemplateRaw | ConvertFrom-Json
+    $bsversion = Get-Content "$PSScriptRoot/../extern/includes/bs-cordl/include/version.txt"
+    if (-not [string]::IsNullOrWhitespace($bsversion)) {
+        Write-Output "Setting Package Version to $bsversion"
+        $modTemplate.packageVersion = $bsversion
+
+        # Write the updated mod.template.json if the contents have changed
+        if (($modTemplate | ConvertTo-Json -Depth 32) -ne ($modTemplateOriginal | ConvertTo-Json -Depth 32)) {
+            Write-Output "Writing updated mod.template.json"
+            $modTemplate | ConvertTo-Json -Depth 32 | Set-Content -Path "$PSScriptRoot/../mod.template.json"
+        }
+    }
+    else {
+        Write-Output "Empty bs-cordl version.txt, skipping package version update."
+    }
+}
+else {
+    Write-Output "Missing bs-cordl version.txt, skipping package version update."
 }
 
 # Create the build directory if it doesn't exist

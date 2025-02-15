@@ -48,10 +48,6 @@ out/
 [Oo]bj/
 [Oo]bjs/
 ndkpath.txt
-*.zip
-*.txt
-*.log
-Android.mk.backup
 
 # QPM stuff
 [Ee]xtern/
@@ -69,3 +65,7 @@ extern.cmake
 mod.json.schema
 include/Hooking.hpp
 include/git-info.h
+
+# Script package ID text file
+package_id.txt
+version.txt

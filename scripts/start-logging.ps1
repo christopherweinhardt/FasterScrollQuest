@@ -2,26 +2,26 @@
 # It supports various logging options including self, all, custom patterns, and file output.
 
 Param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $self,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $all,
 
-    [Parameter(Mandatory=$false)]
-    [String] $custom="",
+    [Parameter(Mandatory = $false)]
+    [String] $custom = "",
 
-    [Parameter(Mandatory=$false)]
-    [String] $file="",
+    [Parameter(Mandatory = $false)]
+    [String] $file = "",
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $help,
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $excludeHeader,
 
-    [Parameter(Mandatory=$false)]
-    [String] $packageName="com.beatgames.beatsaber"
+    [Parameter(Mandatory = $false)]
+    [String] $packageId = "com.beatgames.beatsaber"
 )
 
 # Display help information if requested
@@ -40,8 +40,14 @@ if ($help -eq $true) {
     exit
 }
 
+# Check if package_id.txt exists and use that as the package name
+if (Test-Path "$PSScriptRoot/../package_id.txt") {
+    $packageId = Get-Content "$PSScriptRoot/../package_id.txt"
+    Write-Output "Using package ID from package_id.txt: $packageId"
+}
+
 # Get the process ID of Beat Saber
-$bspid = adb shell pidof "$packageName"
+$bspid = adb shell pidof "$packageId"
 $command = "adb logcat "
 
 # Retry getting the process ID if not found
@@ -49,7 +55,7 @@ if ($all -eq $false) {
     $loops = 0
     while ([string]::IsNullOrEmpty($bspid) -and $loops -lt 3) {
         Start-Sleep -Milliseconds 100
-        $bspid = adb shell pidof "$packageName"
+        $bspid = adb shell pidof "$packageId"
         $loops += 1
     }
 

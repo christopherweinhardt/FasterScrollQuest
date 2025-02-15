@@ -2,10 +2,10 @@
 # It requires the Android NDK path to be set.
 
 Param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [String] $logName = "RecentCrash.log",
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $help
 )
 
@@ -22,7 +22,8 @@ if ($help -eq $true) {
 # Determine the NDK path
 if (Test-Path "./ndkpath.txt") {
     $NDKPath = Get-Content ./ndkpath.txt
-} else {
+}
+else {
     $NDKPath = $ENV:ANDROID_NDK_HOME
 }
 

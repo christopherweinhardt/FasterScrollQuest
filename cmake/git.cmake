@@ -27,7 +27,12 @@ function(prepare_git_info)
         execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD OUTPUT_VARIABLE GIT_COMMIT_FULL ERROR_QUIET)
         execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 OUTPUT_VARIABLE GIT_TAG ERROR_QUIET)
         execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --exact --abbrev=0 OUTPUT_VARIABLE GIT_EXACT_TAG ERROR_QUIET)
-        execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD RESULT_VARIABLE GIT_MODIFIED ERROR_QUIET)
+
+        if("$ENV{GITHUB_WORKFLOW_RUN}" STREQUAL "true")
+            execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD -- :!qpm.json :!qpm.shared.json :!mod.template.json RESULT_VARIABLE GIT_MODIFIED ERROR_QUIET)
+        else()
+            execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD RESULT_VARIABLE GIT_MODIFIED ERROR_QUIET)
+        endif()
 
         string(STRIP "${GIT_USER}" GIT_USER)
         string(STRIP "${GIT_BRANCH}" GIT_BRANCH)
@@ -43,8 +48,8 @@ function(prepare_git_info)
     if(GIT_TAG STREQUAL "")
         set(GIT_VERSION "${PACKAGE_VERSION}")
     else()
-        string(SUBSTRING "${GIT_TAG}" 1 -1 GIT_TAG_SUB)
-        string(REGEX MATCH "^[^+-]*" GIT_VERSION "${GIT_TAG_SUB}")
+        string(REGEX REPLACE "^[^0-9]+" "" GIT_TAG_CLEANED "${GIT_TAG}")
+        string(REGEX MATCH "^[^+-]*" GIT_VERSION "${GIT_TAG_CLEANED}")
     endif()
 
     if(GIT_EXACT_TAG STREQUAL "")
@@ -77,15 +82,15 @@ function(prepare_git_info)
     if(DEFINED GIT_HEADER_FILE)
         # set git defines in header file
         set(GIT_HEADER_CONTENT "#pragma once
-        #define GIT_USER \"${GIT_USER}\"
-        #define GIT_BRANCH \"${GIT_BRANCH}\"
-        #define GIT_COMMIT \"${GIT_COMMIT}\"
-        #define GIT_COMMIT_FULL \"${GIT_COMMIT_FULL}\"
-        #define GIT_TAG \"${GIT_TAG}\"
-        #define GIT_EXACT_TAG \"${GIT_EXACT_TAG}\"
-        #define GIT_MODIFIED ${GIT_MODIFIED}
-        #define GIT_VERSION \"${GIT_VERSION}\"
-        ")
+#define GIT_USER \"${GIT_USER}\"
+#define GIT_BRANCH \"${GIT_BRANCH}\"
+#define GIT_COMMIT \"${GIT_COMMIT}\"
+#define GIT_COMMIT_FULL \"${GIT_COMMIT_FULL}\"
+#define GIT_TAG \"${GIT_TAG}\"
+#define GIT_EXACT_TAG \"${GIT_EXACT_TAG}\"
+#define GIT_MODIFIED ${GIT_MODIFIED}
+#define GIT_VERSION \"${GIT_VERSION}\"
+")
 
         # only update the header file if the contents have changed
         if(EXISTS ${GIT_HEADER_FILE})
