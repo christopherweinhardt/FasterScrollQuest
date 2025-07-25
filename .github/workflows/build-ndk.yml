@@ -11,18 +11,10 @@ on:
     tags:
       - "v*"
     branches:
-      - "master"
-      - "main"
-      - "dev/*"
-      - "feat/*"
-      - "fix/*"
+      - "*"
   pull_request:
     branches:
-      - "master"
-      - "main"
-      - "dev/*"
-      - "feat/*"
-      - "fix/*"
+      - "*"
 
 jobs:
   qpm_info:
@@ -38,16 +30,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: true
-          lfs: true
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Install jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
 
       - name: Read info from qpm.json
         id: read_qpm_info

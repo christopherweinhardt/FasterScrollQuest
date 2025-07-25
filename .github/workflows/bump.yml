@@ -1,0 +1,175 @@
+name: Bump dependencies
+
+on:
+  workflow_dispatch:
+    inputs:
+      cordl:
+        description: "Cordl Version"
+        required: true
+      mod-version:
+        description: "Mod Version"
+        required: false
+      ndk-version:
+        description: "NDK Version"
+        required: false
+
+# Sets permissions of the GITHUB_TOKEN to allow push
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  qpm_info:
+    runs-on: ubuntu-latest
+
+    outputs:
+      name: ${{ steps.read_qpm_info.outputs.name }}
+      id: ${{ steps.read_qpm_info.outputs.id }}
+      override_so_name: ${{ steps.read_qpm_info.outputs.override_so_name }}
+      qmod_output_path: ${{ steps.read_qpm_info.outputs.qmod_output_path }}
+      ndk: ${{ steps.read_qpm_info.outputs.ndk }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read info from qpm.json
+        id: read_qpm_info
+        run: |
+          NAME="$(jq -r '.info.name' qpm.json)"
+          ID="$(jq -r '.info.id' qpm.json)"
+          OVERRIDE_SO_NAME="$(jq -r '.info.additionalData.overrideSoName' qpm.json)"
+          QMOD_OUTPUT_PATH="$(jq -r '.workspace.qmodOutput' qpm.json)"
+          NDK="$(jq -r '.workspace.ndk' qpm.json)"
+
+          echo "name=${NAME}" | tee -a "$GITHUB_OUTPUT"
+          echo "id=${ID}" | tee -a "$GITHUB_OUTPUT"
+          echo "override_so_name=${OVERRIDE_SO_NAME}" | tee -a "$GITHUB_OUTPUT"
+          echo "qmod_output_path=${QMOD_OUTPUT_PATH}" | tee -a "$GITHUB_OUTPUT"
+          echo "ndk=${NDK}" | tee -a "$GITHUB_OUTPUT"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: qpm_info
+
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+        with:
+          submodules: true
+          lfs: true
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: seanmiddleditch/gha-setup-ninja@v3
+        with:
+          destination: /tmp/ninja-build
+
+      - name: Get home path
+        run: |
+          echo "HOME=$HOME" | tee -a "$GITHUB_ENV"
+
+      - name: Update mod version
+        if: inputs.mod-version != ''
+        run: |
+          jq --arg version "${{ inputs.mod-version }}" \
+            '.info.version = $version' \
+            qpm.json > qpm.json.tmp && mv qpm.json.tmp qpm.json
+          git add qpm.json
+
+      - name: Update NDK version
+        if: inputs.ndk-version != ''
+        run: |
+          jq --arg version "${{ inputs.ndk-version }}" \
+            '.workspace.ndk = $version' \
+            qpm.json > qpm.json.tmp && mv qpm.json.tmp qpm.json
+          git add qpm.json
+
+      - name: Update bs-cordl version in qpm.json
+        if: inputs.cordl != ''
+        run: |
+          jq --arg version "${{ inputs.cordl }}" \
+            '(.dependencies[] | select(.id == "bs-cordl") | .versionRange) = $version' \
+            qpm.json > qpm.json.tmp && mv qpm.json.tmp qpm.json
+          git add qpm.json
+
+      - name: Setup qpm
+        uses: fernthedev/qpm-action@v1
+        with:
+          workflow_token: ${{ secrets.GITHUB_TOKEN }}
+          restore: true
+          resolve_ndk: true
+          cache: true
+
+      - name: qpm restore
+        run: |
+          qpm restore --update
+
+      - name: Get game version
+        run: |
+          echo "game_version=$(cat extern/includes/bs-cordl/include/version.txt)" >> $GITHUB_ENV
+
+      - name: Update game version
+        run: |
+          # Helper to update packageVersion in mod.*.json
+          update_package_version() {
+              local file="$1"
+              local game_version=$(cat extern/includes/bs-cordl/include/version.txt)
+              if [ -e "$file" ]; then
+                  echo "Updating packageVersion in $file to ${{ env.game_version }}"
+                  jq --arg game_version "${{ env.game_version }}" '.packageVersion = $game_version' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+              fi
+          }
+
+          update_package_version "mod.json"
+          update_package_version "mod.template.json"
+
+      - name: Build & Create Qmod
+        run: |
+          qpm qmod zip
+        env:
+          GITHUB_WORKFLOW_RUN: "true"
+
+      - name: Rename build artifacts
+        run: |
+          mv "./build/debug/${{ needs.qpm_info.outputs.override_so_name }}" "./debug_${{ needs.qpm_info.outputs.override_so_name }}"
+          mv "./build/${{ needs.qpm_info.outputs.override_so_name }}" "./${{ needs.qpm_info.outputs.override_so_name }}"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          if-no-files-found: error
+          path: |
+            ./${{ needs.qpm_info.outputs.override_so_name }}
+            ./debug_${{ needs.qpm_info.outputs.override_so_name }}
+            ${{ needs.qpm_info.outputs.qmod_output_path }}
+
+      - name: Configure Git
+        uses: DanTheMan827/config-git-user-action@v1
+        with:
+          user_name: ${{ github.actor }}
+
+      - name: Reset git
+        run: |
+          git reset
+
+      - name: Add and commit changes
+        run: |
+          add_files() {
+              for file in "$@"; do
+                  if [ -e "$file" ]; then
+                      git add "$file"
+                  fi
+              done
+          }
+          add_files qpm.json qpm.shared.json mod.json mod.template.json
+          git commit -m "Bump dependencies for ${{ env.game_version }}"
+          git reset --hard
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          branch: bump/${{ env.game_version }}
+          title: "Bump dependencies for ${{ env.game_version }}"
