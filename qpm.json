@@ -65,7 +65,7 @@
         "pwsh ./scripts/update-version.ps1 $0:?"
       ]
     },
-    "ndk": "^27.2.12479018",
+    "ndk": "^29.0.14206865",
     "qmodIncludeDirs": [
       "./build",
       "./extern/libs"
@@ -81,37 +81,47 @@
     },
     {
       "id": "beatsaber-hook",
-      "versionRange": "^6.4.2",
+      "versionRange": "^9.3.0",
       "additionalData": {}
     },
     {
       "id": "bs-cordl",
-      "versionRange": "4008",
+      "versionRange": "4503.*",
       "additionalData": {}
     },
     {
       "id": "bsml",
-      "versionRange": "^0.4.54",
+      "versionRange": "^0.6.5",
       "additionalData": {}
     },
     {
       "id": "config-utils",
-      "versionRange": "^2.0.3",
+      "versionRange": "^3.0.0",
       "additionalData": {}
     },
     {
       "id": "custom-types",
-      "versionRange": "^0.18.3",
+      "versionRange": "^0.21.2",
+      "additionalData": {}
+    },
+    {
+      "id": "flamingo",
+      "versionRange": "^1.2.1",
       "additionalData": {}
     },
     {
       "id": "paper2_scotland2",
-      "versionRange": "^4.6.4",
+      "versionRange": "^4.8.0",
+      "additionalData": {}
+    },
+    {
+      "id": "reflectcpp",
+      "versionRange": "^0.25.0",
       "additionalData": {}
     },
     {
       "id": "scotland2",
-      "versionRange": "^0.1.6",
+      "versionRange": "^0.1.7",
       "additionalData": {
         "includeQmod": false
       }

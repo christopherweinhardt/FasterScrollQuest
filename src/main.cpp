@@ -1,7 +1,6 @@
 #include "main.hpp"
 
 #include "autohooks/shared/hooks.hpp"
-#include "beatsaber-hook/shared/utils/il2cpp-functions.hpp"
 #include "config.hpp"
 #include "custom-types/shared/macros.hpp"
 #include "custom-types/shared/register.hpp"
@@ -53,7 +52,7 @@ MOD_EXPORT_FUNC void setup(CModInfo& info) {
 /// @return
 MOD_EXPORT_FUNC void load() {
     // Initialize il2cpp functions
-    il2cpp_functions::Init();
+    i2c::functions::initialize();
     BSML::Init();
     BSML::Register::RegisterSettingsMenu("Faster Scroll", ConfigViewDidLoad, false);
     custom_types::Register::AutoRegister();
@@ -154,7 +153,12 @@ MAKE_EARLY_HOOK_MATCH(LevelCollectionTableView_OnEnable, &LevelCollectionTableVi
 }
 
 MAKE_EARLY_HOOK_MATCH(
-    ScrollView_HandleJoystickWasNotCenteredThisFrame, &ScrollView::HandleJoystickWasNotCenteredThisFrame, void, ScrollView* self, Vector2 deltaPos
+    ScrollView_HandleJoystickWasNotCenteredThisFrame,
+    &ScrollView::HandleJoystickWasNotCenteredThisFrame,
+    void,
+    ScrollView* self,
+    Vector2 deltaPos,
+    float_t scaledDeltaTime
 ) {
     if (!isLinear) {
         if (StringW(self->get_transform()->get_parent()->get_gameObject()->get_name()) == str && isntStock) {
@@ -162,7 +166,7 @@ MAKE_EARLY_HOOK_MATCH(
         }
     }
 
-    ScrollView_HandleJoystickWasNotCenteredThisFrame(self, deltaPos);
+    ScrollView_HandleJoystickWasNotCenteredThisFrame(self, deltaPos, scaledDeltaTime);
 }
 
 MAKE_EARLY_HOOK_MATCH(ScrollView_HandleJoystickWasCenteredThisFrame, &ScrollView::HandleJoystickWasCenteredThisFrame, void, ScrollView* self) {
